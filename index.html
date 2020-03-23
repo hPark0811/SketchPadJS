@@ -7,7 +7,21 @@
   <title>Document</title>
 </head>
 <body>
-  <h1>hello</h1>
+  <h1>Sketchpad</h1>
+  <label>Edit mode</label>
+  <select id="editMode" onchange="updateEditMode()">
+    <option value="sketch">sketch</option>
+    <option value="select">select</option>
+  </select>
+  <label>Sketch mode</label>
+  <select id="drawMode" onchange="updateDrawMode()">
+    <option value="scribble">scribble</option>
+    <option value="line">line</option>
+    <option value="rectangle">rectangle</option>
+    <option value="square">square</option>
+    <option value="ellipse">ellipse</option>
+    <option value="polygon">polygon</option>
+  </select>
   <div>
     <canvas id="sketchpad" style="border: solid 1px black; width: 400px; height: 600px"></canvas>
   </div>

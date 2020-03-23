@@ -24,17 +24,55 @@ class Sketchpad {
     this.onMouseUp = this.onMouseUp.bind(this);
     this.onMouseOut = this.onMouseOut.bind(this);
 
+    this.setDrawMode(config.drawMode);
+    this.setEditMode(config.editMode);
+
+    this._state = {
+      sketching: false
+    }
+
     this.initEventSetting();
+  }
+
+  // private APIs
+
+  _getPosition(e) {
+    return {
+      x: e.pageX - this.canvas.offsetLeft,
+      y: e.pageY - this.canvas.offsetTop,
+    };
+  }
+
+  // public APIs
+
+  setDrawMode(drawMode) {
+    console.log(drawMode);
+  }
+
+  setEditMode(editMode) {
+    console.log(editMode);
   }
 
   // Events
 
   onMouseDown(event) {
     console.log('mouse down!')
+
+    this._state.sketching = true;
+
+    // Allow canvas to start listening to event when click is detected.
+    this.canvas.addEventListener('mousemove', this.onMouseMove);
   }
 
   onMouseUp(event) {
     console.log('mouse up!')
+
+    if (this._state.sketching) {
+      this._state.sketching = false;
+    }
+
+    // Remove event when mouse up detected.
+    this.canvas.removeEventListener('mousemove', this.onMouseMove);
   }
 
   onMouseOut(event) {
