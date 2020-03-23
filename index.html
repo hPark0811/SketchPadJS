@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="./Sketchpad.js"></script>
+  <script src="./tools/Shape/Shape.js"></script>
+  <script src="./tools/DrawTool.js"></script>
+  <script src="./tools/LineTool.js"></script>
+  <script src="./tools/ScribbleTool.js"></script>
+  <script src="./tools/RectangleTool.js"></script>
+  <script src="./tools/EllipseTool.js"></script>
+  <script src="./tools/PolygonTool.js"></script>
   <title>Document</title>
 </head>
 <body>
@@ -15,15 +22,16 @@
   </select>
   <label>Sketch mode</label>
   <select id="drawMode" onchange="updateDrawMode()">
-    <option value="scribble">scribble</option>
     <option value="line">line</option>
+    <option value="scribble">scribble</option>
     <option value="rectangle">rectangle</option>
     <option value="square">square</option>
     <option value="ellipse">ellipse</option>
+    <option value="circle">circle</option>
     <option value="polygon">polygon</option>
   </select>
   <div>
-    <canvas id="sketchpad" style="border: solid 1px black; width: 400px; height: 600px"></canvas>
+    <canvas id="sketchpad" style="border: solid 1px black;"></canvas>
   </div>
   <button onclick="sketchpad.undo()">undo</button>
   <button onclick="sketchpad.redo()">redo</button>
