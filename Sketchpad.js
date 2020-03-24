@@ -38,11 +38,12 @@ class Sketchpad {
     /* this._tool; gets initiated inside set Draw Mode*/
     this.setShape(config.shape);
     this.setAction(config.action);
+    this.setCopyMode(config.copyMode);
 
     // arrays in history holds array of actions per turn
     this._history = {
       active: [],
-      hidden: []
+      undo: []
     }
   }
 
@@ -55,27 +56,34 @@ class Sketchpad {
     };
   }
 
-  _initEditTools(shapes, pos = {x: 0, y: 0}) {
+  _initEditTools(shapes, pos = { x: 0, y: 0 }) {
     this._editTools = shapes.map((shape) => {
       let editTool;
+      let copyShape;
       switch (true) {
         case shape instanceof Line:
           editTool = new LineTool(this.context);
+          copyShape = new Line();
           break;
         case shape instanceof Ellipse:
           editTool = new EllipseTool(this.context);
+          copyShape = new Ellipse();
           break;
         case shape instanceof Polygon:
           editTool = new PolygonTool(this.context);
+          copyShape = new Polygon();
           break;
         case shape instanceof Rectangle:
           editTool = new RectangleTool(this.context);
+          copyShape = new Rectangle();
           break;
         default:
           editTool = new ScribbleTool(this.context);
+          copyShape = new Scribble();
           break;
       }
-      editTool.initShape(shape, pos.x, pos.y);
+      copyShape.copy(shape);
+      editTool.initShape(copyShape, pos.x, pos.y);
       return editTool;
     })
   }
@@ -83,7 +91,6 @@ class Sketchpad {
   // public APIs
 
   setShape(shape) {
-    /* TODO Assign proper draw tool class */
     switch (shape) {
       case 'scribble':
         this._tool = new ScribbleTool(this.context);
@@ -107,7 +114,6 @@ class Sketchpad {
         this._tool = new PolygonTool(this.context);
         break;
     }
-    console.log(shape);
   }
 
   setAction(action) {
@@ -126,13 +132,12 @@ class Sketchpad {
   }
 
   reset() {
+    this.clear();
     this._history.active.forEach((shapes) => {
-      shapes.forEach((shape) => {
-        this._initEditTools(shapes);
-        this._editTools.forEach((tool) => {
-          tool.redraw();
-        })
-      })
+      this._initEditTools(shapes);
+      this._editTools.forEach((tool) => {
+        tool.redraw();
+      });
     })
   }
 
@@ -148,22 +153,25 @@ class Sketchpad {
 
       // Allow canvas to start listening to event when click is detected.
       this.canvas.addEventListener('mousemove', this.onMouseMove);
-    } 
+    }
     else {
+      let targetNdx = 0;
       for (const shapes of this._history.active) {
         for (const shape of shapes) {
           if (shape.contains(pos.x, pos.y)) {
 
-            this._state.copying = true;
+            this._state.dragging = true;
             this._initEditTools(shapes, pos);
-
-            console.log(shape);
             // Allow canvas to start listening to event when click is detected.
             this.canvas.addEventListener('mousemove', this.onMouseMove);
 
+            if (!this._isCopy) {
+              this._history.active.splice(targetNdx, 1);
+            }
             return;
           }
         }
+        targetNdx++;
       }
     }
   }
@@ -172,7 +180,7 @@ class Sketchpad {
     const pos = this._getPosition(event);
     if (this._isSketch) {
       this._tool.draw(pos.x, pos.y);
-    } 
+    }
     else {
       this._editTools.forEach((editTool) => {
         editTool.move(pos.x, pos.y);
@@ -185,24 +193,26 @@ class Sketchpad {
       if (this._state.sketching) {
         this._state.sketching = false;
         let action = this._tool.finishDraw();
-        this._history.active.unshift([action]);
+        if (!(this._tool instanceof PolygonTool)) {
+          this._history.active.unshift([action]);
+          this.canvas.removeEventListener('mousemove', this.onMouseMove);
+        }
       }
-      // Remove event when mouse up detected.
-      // For polygon mode, don't remove event listener, it's a bit
-      if (!(this._tool instanceof PolygonTool)) {
-        this.canvas.removeEventListener('mousemove', this.onMouseMove);
-      }
-    } 
+    }
     else {
-      if (this._state.copying) {
+      if (this._state.dragging) {
+        console.log(this._history.active.length);
         this._history.active.unshift(
           this._editTools.map((editTool) => {
             return editTool.finishMove();
           })
         );
         this._editTools = null;
-        this._state.copying = false;
-        console.log(this._history.active);
+        this._state.dragging = false;
+        if (!this._isCopy) {
+          this.reset();
+        }
+        console.log(this._history.active.length);
       }
 
       this.canvas.removeEventListener('mousemove', this.onMouseMove);
@@ -236,8 +246,12 @@ class Sketchpad {
       }
 
       document.addEventListener(('keyup'), (e) => {
-        if (e.key === "Escape") { // escape key maps to keycode `27`
+        if (e.key === "Escape" && this._tool instanceof PolygonTool) { // escape key maps to keycode `27`
           this.canvas.removeEventListener('mousemove', this.onMouseMove);
+          this._history.active.unshift([this._tool.finishDraw()]);
+          e.stopImmediatePropagation();
+          this.reset();
+          this._tool = new PolygonTool(this.context);
         }
       });
     }, this);

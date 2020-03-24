@@ -19,6 +19,13 @@ class Shape {
     }
   }
 
+  copy(shape) {
+    this.minPos = Object.assign(shape.minPos);
+    this.maxPos = Object.assign(shape.maxPos);
+    this.color = shape.color;
+    this.history = shape.history.map((action) => Object.assign(action));
+  }
+
   contains(x, y) {
     return this.minPos.x <= x && this.maxPos.x >= x && this.minPos.y <= y && this.maxPos.y >= y;
   }

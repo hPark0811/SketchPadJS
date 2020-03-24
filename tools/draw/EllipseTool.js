@@ -26,7 +26,7 @@ class EllipseTool extends Tool {
   }
 
   redraw() {
-    _createEllipse(this.ellipse);
+    this._createEllipse(this.ellipse);
   }
 
   finishDraw() {
@@ -42,6 +42,41 @@ class EllipseTool extends Tool {
     return this.ellipse;
   }
 
+  initShape(ellipse, x, y) {
+    this.ellipse = ellipse;
+    this.start = { x: x, y: y };
+    this.imageData = this.context.getImageData(
+      0, 
+      0, 
+      this.context.canvas.clientWidth, 
+      this.context.canvas.clientHeight
+    );
+    this.move(x, y);
+  }
+
+  move(x, y) {
+    const offset = {
+      x: x - this.start.x,
+      y: y - this.start.y
+    };
+
+    let prevCenter = Object.assign(this.ellipse.history[0]);
+    this.currCenter = {
+      x: this.ellipse.history[0].x + offset.x,
+      y: this.ellipse.history[0].y + offset.y
+    }
+    this.ellipse.history[0] = this.currCenter;
+
+    this.context.putImageData(this.imageData, 0, 0);
+    this._createEllipse(this.ellipse);
+    this.ellipse.history[0] = prevCenter;
+  }
+
+  finishMove() {
+    this.ellipse.history[0] = this.currCenter;
+    return this.finishDraw();
+  }
+
   _createEllipse(ellipse) {
     if (ellipse.isCircle) {
       let maxLen = ellipse.history[1].x > ellipse.history[1].y ? ellipse.history[1].x : ellipse.history[1].y;
@@ -53,7 +88,7 @@ class EllipseTool extends Tool {
     this.context.beginPath();
     this.context.strokeStyle = ellipse.color;
     this.context.fillStyle = ellipse.color;
-    this.context.lineWidth = 5;
+    this.context.lineWidth = 2;
     this.context.ellipse(
       ellipse.history[0].x,
       ellipse.history[0].y,

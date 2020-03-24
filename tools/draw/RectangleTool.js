@@ -30,6 +30,48 @@ class RectangleTool extends Tool {
     return this.rect;
   }
 
+  initShape(rect, x, y) {
+    this.rect = rect;
+    this.start = { x: x, y: y };
+    this.imageData = this.context.getImageData(
+      0, 
+      0, 
+      this.context.canvas.clientWidth, 
+      this.context.canvas.clientHeight
+    );
+    this.move(x, y)
+  }
+
+  move(x, y) {
+    const offset = {
+      x: x - this.start.x,
+      y: y - this.start.y
+    };
+
+    let prev = [
+      Object.assign(this.rect.history[0]),
+      Object.assign(this.rect.history[1])
+    ]
+    
+    this.curr = [{ 
+      x: this.rect.history[0].x + offset.x,
+      y: this.rect.history[0].y + offset.y
+    }, {
+      x: this.rect.history[1].x + offset.x,
+      y: this.rect.history[1].y + offset.y
+    }]
+    this.rect.history = this.curr
+
+    this.context.putImageData(this.imageData, 0, 0);
+    this._createRectangle(this.rect);
+    this.rect.history = prev;
+  }
+
+  finishMove() {
+    this.rect.history = this.curr;
+    return this.finishDraw();
+  }
+
   _createRectangle(rect) {
     let width = rect.history[1].x - rect.history[0].x;
     let height = rect.history[1].y - rect.history[0].y;
@@ -44,7 +86,7 @@ class RectangleTool extends Tool {
     this.context.beginPath();
     this.context.strokeStyle = rect.color;
     this.context.fillStyle = rect.color;
-    this.context.lineWidth = 5;
+    this.context.lineWidth = 2;
     this.context.rect(rect.history[0].x, rect.history[0].y, width, height);
     this.context.stroke();
     this.context.fill();

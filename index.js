@@ -32,8 +32,4 @@ function updateShape() {
 
 function updateCopyMode() {
   sketchpad.setCopyMode(mode.value);
-
-  if (shape.value === 'polygon') {
-    alert('Polygon mode can only be exited with ESC key!')
-  }
 }
