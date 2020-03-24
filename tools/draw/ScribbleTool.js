@@ -1,29 +1,37 @@
-class ScribbleTool extends DrawTool {
+class ScribbleTool extends Tool {
   initDraw(x, y, color) {
-    this.line = new Scribble(x, y, color);
+    this.scrib = new Scribble(color);
+    this.scrib.prev = { x: x, y: y };
+    this.scrib.curr = { x: x, y: y };
   }
 
   draw(x, y) {
-    this.line.prev = this.line.curr;
-    this.line.curr = { x: x, y: y };
-    this.line.paths.push = this.line.curr;
-    this._createLine(this.line);
+    this.scrib.prev = this.scrib.curr;
+    this.scrib.curr = { x: x, y: y };
+    this.scrib.history.push(this.scrib.curr);
+    this._createLine(this.scrib.prev, this.scrib.curr);
   }
 
   finishDraw() {
-    // TODO: Calculate min and max
-    this._createLine(this.line);
+    this.scrib.updateMinMax();
+    return this.scrib;
   }
 
-  _createLine(line) {
+  redraw() {
+    for (let i = 1; i < this.scrib.history.length; i++) {
+      this._createLine(this.scrib.history[i - 1], this.scrib.history[i]);
+    }
+  }
+
+  _createLine(start, end) {
     this.context.save();
     this.context.lineJoin = 'round';
     this.context.lineCap = 'round';
-    this.context.strokeStyle = line.color;
+    this.context.strokeStyle = this.scrib.color;
     this.context.lineWidth = 5;
     this.context.beginPath();
-    this.context.moveTo(line.prev.x, line.prev.y);
-    this.context.lineTo(line.curr.x, line.curr.y);
+    this.context.moveTo(start.x, start.y);
+    this.context.lineTo(end.x, end.y);
     this.context.closePath();
     this.context.stroke();
     this.context.restore();
@@ -31,12 +39,10 @@ class ScribbleTool extends DrawTool {
 }
 
 class Scribble extends Shape {
-  constructor(x, y, color) {
-    super(x, y, color);
-    this.prev = { x: x, y: y };
-    this.curr = { x: x, y: y };
-    this.paths = [{ x: x, y: y }];
+  constructor(color) {
+    super(color);
   }
 }
 
 window.ScribbleTool = ScribbleTool;
+window.Scribble = Scribble;

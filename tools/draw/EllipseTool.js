@@ -1,11 +1,13 @@
-class EllipseTool extends DrawTool {
+class EllipseTool extends Tool {
   constructor(context, isCircle = false) {
     super(context);
     this.isCircle = isCircle;
   }
 
   initDraw(x, y, color) {
-    this.ellipse = new Ellipse(x, y, color, this.isCircle);
+    this.ellipse = new Ellipse(color, this.isCircle);
+    this.ellipse.history[0] = {x: x, y: y};
+    this.ellipse.history[1] = {x: 0, y: 0};
     this.imageData = this.context.getImageData(
       0,
       0,
@@ -15,26 +17,36 @@ class EllipseTool extends DrawTool {
   }
 
   draw(x, y) {
-    this.ellipse.edge = { x: x, y: y };
+    this.ellipse.history[1] = {
+      x: Math.abs(x - this.ellipse.history[0].x),
+      y: Math.abs(y - this.ellipse.history[0].y)
+    }
     this.context.putImageData(this.imageData, 0, 0);
     this._createEllipse(this.ellipse);
   }
 
+  redraw() {
+    _createEllipse(this.ellipse);
+  }
+
   finishDraw() {
-    // TODO: Calculate min and max
-    this._createEllipse(this.ellipse);
+    this.ellipse.minPos = {
+      x: this.ellipse.history[0].x - this.ellipse.history[1].x, 
+      y: this.ellipse.history[0].y - this.ellipse.history[1].y
+    }
+    this.ellipse.maxPos = {
+      x: this.ellipse.history[0].x + this.ellipse.history[1].x, 
+      y: this.ellipse.history[0].y + this.ellipse.history[1].y
+    }
+
+    return this.ellipse;
   }
 
   _createEllipse(ellipse) {
-    /* let minX = ellipse.start.x < ellipse.edge.x ? ellipse.start.x : ellipse.edge.x;
-    let minY = ellipse.start.y < ellipse.edge.y ? ellipse.start.y : ellipse.edge.y */;
-    let radiusX = Math.abs(ellipse.edge.x - ellipse.center.x);
-    let radiusY = Math.abs(ellipse.edge.y - ellipse.center.y);
-
     if (ellipse.isCircle) {
-      let minLen = radiusX < radiusY ? radiusX : radiusY;
-      radiusX = minLen;
-      radiusY = minLen;
+      let maxLen = ellipse.history[1].x > ellipse.history[1].y ? ellipse.history[1].x : ellipse.history[1].y;
+      ellipse.history[1].x = maxLen;
+      ellipse.history[1].y = maxLen;
     }
 
     this.context.save();
@@ -43,10 +55,10 @@ class EllipseTool extends DrawTool {
     this.context.fillStyle = ellipse.color;
     this.context.lineWidth = 5;
     this.context.ellipse(
-      ellipse.center.x,
-      ellipse.center.y,
-      radiusX,
-      radiusY,
+      ellipse.history[0].x,
+      ellipse.history[0].y,
+      ellipse.history[1].x,
+      ellipse.history[1].y,
       0,
       0,
       2 * Math.PI
@@ -58,12 +70,11 @@ class EllipseTool extends DrawTool {
 }
 
 class Ellipse extends Shape {
-  constructor(x, y, color, isCircle) {
-    super(x, y, color);
+  constructor(color, isCircle) {
+    super(color);
     this.isCircle = isCircle;
-    this.center = { x: x, y: y };
-    this.edge = {};
   }
 }
 
 window.EllipseTool = EllipseTool;
+window.Ellipse = Ellipse;

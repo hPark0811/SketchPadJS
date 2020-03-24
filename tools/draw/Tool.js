@@ -1,10 +1,14 @@
-class DrawTool {
+class Tool {
   constructor(context) {
     this.context = context;
   }
 
   initDraw(x, y, color) {
     throw new Error("Method 'initDraw(x, y, color)' must be implemented.");
+  }
+
+  grab(shape) {
+    throw new Error("Method 'grab(shape)' must be implemented.");
   }
 
   draw(x, y) {
@@ -16,4 +20,4 @@ class DrawTool {
   }
 }
 
-window.DrawTool = DrawTool;
+window.Tool = Tool;

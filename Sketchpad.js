@@ -26,16 +26,24 @@ class Sketchpad {
     this.onMouseOut = this.onMouseOut.bind(this);
 
     this._state = {
-      sketching: false
+      sketching: false,
+      moving: false,
+      copying: false
     }
 
     this.initEventSetting();
 
     this.context = this.canvas.getContext('2d');
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    /* this._drawTool; gets initiated inside set Draw Mode*/
-    this.setDrawMode(config.drawMode);
-    this.setEditMode(config.editMode);
+    /* this._tool; gets initiated inside set Draw Mode*/
+    this.setShape(config.shape);
+    this.setAction(config.action);
+
+    // arrays in history holds array of actions per turn
+    this._history = {
+      active: [],
+      hidden: []
+    }
   }
 
   // private APIs
@@ -47,68 +55,156 @@ class Sketchpad {
     };
   }
 
-  // public APIs
-
-  setDrawMode(drawMode) {
-    /* TODO Assign proper draw tool class */
-    switch (drawMode) {
-      case 'scribble':
-        this._drawTool = new ScribbleTool(this.context);
-        break;
-      case 'line':
-        this._drawTool = new LineTool(this.context);
-        break;
-      case 'rectangle':
-        this._drawTool = new RectangleTool(this.context);
-        break;
-      case 'square':
-        this._drawTool = new RectangleTool(this.context, true);
-        break;
-      case 'ellipse':
-        this._drawTool = new EllipseTool(this.context);
-        break;
-      case 'circle':
-        this._drawTool = new EllipseTool(this.context, true);
-        break;
-      case 'polygon':
-        this._drawTool = new PolygonTool(this.context);
-        break;
-    }
-    console.log(drawMode);
+  _initEditTools(shapes, pos = {x: 0, y: 0}) {
+    this._editTools = shapes.map((shape) => {
+      let editTool;
+      switch (true) {
+        case shape instanceof Line:
+          editTool = new LineTool(this.context);
+          break;
+        case shape instanceof Ellipse:
+          editTool = new EllipseTool(this.context);
+          break;
+        case shape instanceof Polygon:
+          editTool = new PolygonTool(this.context);
+          break;
+        case shape instanceof Rectangle:
+          editTool = new RectangleTool(this.context);
+          break;
+        default:
+          editTool = new ScribbleTool(this.context);
+          break;
+      }
+      editTool.initShape(shape, pos.x, pos.y);
+      return editTool;
+    })
   }
 
-  setEditMode(editMode) {
-    console.log(editMode);
+  // public APIs
+
+  setShape(shape) {
+    /* TODO Assign proper draw tool class */
+    switch (shape) {
+      case 'scribble':
+        this._tool = new ScribbleTool(this.context);
+        break;
+      case 'line':
+        this._tool = new LineTool(this.context);
+        break;
+      case 'rectangle':
+        this._tool = new RectangleTool(this.context);
+        break;
+      case 'square':
+        this._tool = new RectangleTool(this.context, true);
+        break;
+      case 'ellipse':
+        this._tool = new EllipseTool(this.context);
+        break;
+      case 'circle':
+        this._tool = new EllipseTool(this.context, true);
+        break;
+      case 'polygon':
+        this._tool = new PolygonTool(this.context);
+        break;
+    }
+    console.log(shape);
+  }
+
+  setAction(action) {
+    this._isSketch = action === 'sketch';
+  }
+
+  setCopyMode(mode) {
+    this._isCopy = mode === 'copy';
+  }
+
+  clear() {
+    /* this._history.active.unshift({
+      type: 'clear',
+    }); */
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+
+  reset() {
+    this._history.active.forEach((shapes) => {
+      shapes.forEach((shape) => {
+        this._initEditTools(shapes);
+        this._editTools.forEach((tool) => {
+          tool.redraw();
+        })
+      })
+    })
   }
 
   // Events
 
   onMouseDown(event) {
     const pos = this._getPosition(event);
-    console.log(pos);
 
-    this._state.sketching = true;
-    // TODO: Dynamic Color change implement
-    this._drawTool.initDraw(pos.x, pos.y, '#000');
+    if (this._isSketch) {
+      this._state.sketching = true;
+      // TODO: Dynamic Color change implement
+      this._tool.initDraw(pos.x, pos.y, '#000');
 
-    // Allow canvas to start listening to event when click is detected.
-    this.canvas.addEventListener('mousemove', this.onMouseMove);
+      // Allow canvas to start listening to event when click is detected.
+      this.canvas.addEventListener('mousemove', this.onMouseMove);
+    } 
+    else {
+      for (const shapes of this._history.active) {
+        for (const shape of shapes) {
+          if (shape.contains(pos.x, pos.y)) {
+
+            this._state.copying = true;
+            this._initEditTools(shapes, pos);
+
+            console.log(shape);
+            // Allow canvas to start listening to event when click is detected.
+            this.canvas.addEventListener('mousemove', this.onMouseMove);
+
+            return;
+          }
+        }
+      }
+    }
   }
 
   onMouseMove(event) {
     const pos = this._getPosition(event);
-    this._drawTool.draw(pos.x, pos.y);
+    if (this._isSketch) {
+      this._tool.draw(pos.x, pos.y);
+    } 
+    else {
+      this._editTools.forEach((editTool) => {
+        editTool.move(pos.x, pos.y);
+      });
+    }
   }
 
   onMouseUp(event) {
-    if (this._state.sketching) {
-      this._state.sketching = false;
-      this._drawTool.finishDraw();
-    }
-    // Remove event when mouse up detected.
+    if (this._isSketch) {
+      if (this._state.sketching) {
+        this._state.sketching = false;
+        let action = this._tool.finishDraw();
+        this._history.active.unshift([action]);
+      }
+      // Remove event when mouse up detected.
+      // For polygon mode, don't remove event listener, it's a bit
+      if (!(this._tool instanceof PolygonTool)) {
+        this.canvas.removeEventListener('mousemove', this.onMouseMove);
+      }
+    } 
+    else {
+      if (this._state.copying) {
+        this._history.active.unshift(
+          this._editTools.map((editTool) => {
+            return editTool.finishMove();
+          })
+        );
+        this._editTools = null;
+        this._state.copying = false;
+        console.log(this._history.active);
+      }
 
-    // For polygon mode, don't remove event listener, it's a bit
-    if (!(this._drawTool instanceof PolygonTool)) {
       this.canvas.removeEventListener('mousemove', this.onMouseMove);
     }
   }

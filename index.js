@@ -1,22 +1,39 @@
-const drawMode = document.querySelector('#drawMode');
-const editMode = document.querySelector('#editMode');
+const shape = document.querySelector('#shape');
+const action = document.querySelector('#action');
+const mode = document.querySelector('#copyMode');
 
 const sketchpad = new Sketchpad({
   canvas: '#sketchpad',
-  width: 300,
+  width: 400,
   height: 600,
-  drawMode: drawMode.value,
-  editMode: editMode.value,
+  shape: shape.value,
+  action: action.value,
+  copyMode: mode.value
 });
 
-function updateEditMode() {
-  sketchpad.setEditMode(editMode.value);
+function updateAction() {
+  sketchpad.setAction(action.value);
+  if (action.value === 'select') {
+    shape.disabled = true;
+    mode.disabled = false;
+  } else {
+    shape.disabled = false;
+    mode.disabled = true;
+  }
 }
 
-function updateDrawMode() {
-  sketchpad.setDrawMode(drawMode.value);
+function updateShape() {
+  sketchpad.setShape(shape.value);
 
-  if (drawMode.value === 'polygon') {
+  if (shape.value === 'polygon') {
+    alert('Polygon mode can only be exited with ESC key!')
+  }
+}
+
+function updateCopyMode() {
+  sketchpad.setCopyMode(mode.value);
+
+  if (shape.value === 'polygon') {
     alert('Polygon mode can only be exited with ESC key!')
   }
 }

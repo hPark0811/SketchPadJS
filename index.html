@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="./Sketchpad.js"></script>
   <script src="./tools/Shape/Shape.js"></script>
-  <script src="./tools/draw/DrawTool.js"></script>
+
+  <script src="./tools/draw/Tool.js"></script>
   <script src="./tools/draw/LineTool.js"></script>
   <script src="./tools/draw/ScribbleTool.js"></script>
   <script src="./tools/draw/RectangleTool.js"></script>
@@ -15,13 +16,13 @@
 </head>
 <body>
   <h1>Sketchpad</h1>
-  <label>Edit mode</label>
-  <select id="editMode" onchange="updateEditMode()">
+  <label>Action</label>
+  <select id="action" onchange="updateAction()">
     <option value="sketch">sketch</option>
     <option value="select">select</option>
   </select>
-  <label>Sketch mode</label>
-  <select id="drawMode" onchange="updateDrawMode()">
+  <label>Shape</label>
+  <select id="shape" onchange="updateShape()">
     <option value="line">line</option>
     <option value="scribble">scribble</option>
     <option value="rectangle">rectangle</option>
@@ -30,13 +31,18 @@
     <option value="circle">circle</option>
     <option value="polygon">polygon</option>
   </select>
+  <label>Mode</label>
+  <select id="copyMode" onchange="updateCopyMode()" disabled>
+    <option value="copy">copy</option>
+    <option value="move">move</option>
+  </select>
   <div>
     <canvas id="sketchpad" style="border: solid 1px black;"></canvas>
   </div>
   <button onclick="sketchpad.undo()">undo</button>
   <button onclick="sketchpad.redo()">redo</button>
   <button onclick="sketchpad.clear()">clear sketch</button>
-  <button onclick="sketchpad.group()">group</button>
+  <button onclick="sketchpad.reset()">reset</button>
   <script src="./index.js"></script>
 </body>
 </html>
