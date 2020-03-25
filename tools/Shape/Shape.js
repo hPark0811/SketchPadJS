@@ -1,9 +1,23 @@
 class Shape {
-  constructor(color) {
+  constructor(color, isStrict = false) {
     this.minPos = {}
     this.maxPos = {}
     this.color = color;
     this.history = [];
+    this.selected = false;
+    this.selectedColor = '#ff0000';
+    this.originalColor = color;
+    this.isStrict = isStrict;
+  }
+
+  select() {
+    this.selected = true;
+    this.color = this.selectedColor;
+  }
+
+  unselect() {
+    this.selected = true;
+    this.color = this.originalColor;
   }
 
   updateMinMax() {
@@ -23,11 +37,9 @@ class Shape {
     this.minPos = Object.assign(shape.minPos);
     this.maxPos = Object.assign(shape.maxPos);
     this.color = shape.color;
+    this.originalColor = shape.originalColor;
     this.history = shape.history.map((action) => Object.assign(action));
-  }
-
-  contains(x, y) {
-    return this.minPos.x <= x && this.maxPos.x >= x && this.minPos.y <= y && this.maxPos.y >= y;
+    this.isStrict = shape.isStrict;
   }
 }
 

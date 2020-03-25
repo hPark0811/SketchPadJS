@@ -1,7 +1,7 @@
 class PolygonTool extends Tool {
   initDraw(x, y, color) {
     if (!this.poly) {
-      this.poly = new Polygon(x, y, color);
+      this.poly = new Polygon(color);
     }
     this.poly.history.push({ x: x, y: y });
     this.imageData = this.context.getImageData(

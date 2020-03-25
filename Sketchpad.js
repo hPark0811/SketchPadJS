@@ -1,3 +1,45 @@
+class ShapeGroup {
+  constructor(shapes) {
+    this.shapes = shapes;
+    this.isSelected = false;
+    this.groupMin = { ...shapes[0].minPos }
+    this.groupMax = { ...shapes[0].maxPos }
+
+    for (const shape of shapes) {
+      this.groupMin.x = this.groupMin.x < shape.minPos.x ? this.groupMin.x : shape.minPos.x;
+      this.groupMin.y = this.groupMin.y < shape.minPos.y ? this.groupMin.y : shape.minPos.y;
+      this.groupMax.x = this.groupMax.x > shape.maxPos.x ? this.groupMax.x : shape.maxPos.x;
+      this.groupMax.y = this.groupMax.y > shape.maxPos.y ? this.groupMax.y : shape.maxPos.y;
+    }
+  }
+
+  checkGroupClick(x, y) {
+    return this.groupMin.x <= x && this.groupMax.x >= x && this.groupMin.y <= y && this.groupMax.y >= y;
+  }
+
+  click() {
+    if (this.isSelected) {
+      this.unselect();
+    } else {
+      this.select();
+    }
+  }
+
+  select() {
+    this.isSelected = true;
+    for (const shape of this.shapes) {
+      shape.select();
+    }
+  }
+
+  unselect() {
+    this.isSelected = false;
+    for (const shape of this.shapes) {
+      shape.unselect();
+    }
+  }
+}
+
 class Sketchpad {
   constructor(config) {
     if (!config.canvas) {
@@ -13,9 +55,6 @@ class Sketchpad {
     this.color = this.canvas.getAttribute('data-color') || '#000';
     this.readOnly = this.canvas.getAttribute('data-readOnly') || false;
 
-    // Able to copy history
-    // Histories can be a list of single history, or multipe histories
-    this.history = config.history || [];
     // History for undo
     this.undoHistory = [];
 
@@ -31,6 +70,12 @@ class Sketchpad {
       copying: false
     }
 
+    // arrays in history holds array of actions per turn
+    this._history = {
+      active: [],
+      undo: []
+    }
+
     this.initEventSetting();
 
     this.context = this.canvas.getContext('2d');
@@ -38,13 +83,10 @@ class Sketchpad {
     /* this._tool; gets initiated inside set Draw Mode*/
     this.setShape(config.shape);
     this.setAction(config.action);
-    this.setCopyMode(config.copyMode);
+    this.setColor(config.defaultColor);
+    this._isEditCopy = false;
 
-    // arrays in history holds array of actions per turn
-    this._history = {
-      active: [],
-      undo: []
-    }
+
   }
 
   // private APIs
@@ -56,8 +98,8 @@ class Sketchpad {
     };
   }
 
-  _initEditTools(shapes, pos = { x: 0, y: 0 }) {
-    this._editTools = shapes.map((shape) => {
+  _initEditTools(shapeGroup, pos = { x: 0, y: 0 }) {
+    this._editTools = shapeGroup.map((shape) => {
       let editTool;
       let copyShape;
       switch (true) {
@@ -117,28 +159,104 @@ class Sketchpad {
   }
 
   setAction(action) {
-    this._isSketch = action === 'sketch';
+    this._isSketchMode = action === 'sketch';
+    this._isEditMode = action === 'edit';
+    this._isSelectMode = action === 'select';
+
+    if (!this._isSelectMode) {
+      this._history.active.forEach((group) => {
+        group.unselect();
+      });
+    }
   }
 
-  setCopyMode(mode) {
-    this._isCopy = mode === 'copy';
+  setColor(color) {
+    this._currColor = color;
   }
 
   clear() {
-    /* this._history.active.unshift({
-      type: 'clear',
-    }); */
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this._history.active = [];
   }
 
   reset() {
-    this.clear();
-    this._history.active.forEach((shapes) => {
-      this._initEditTools(shapes);
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this._history.active.forEach((shapeGroup) => {
+      this._initEditTools(shapeGroup.shapes);
       this._editTools.forEach((tool) => {
         tool.redraw();
       });
     })
+  }
+
+  undo() {
+    if (this._history.active.length > 0) {
+      this._history.undo.push(this._history.active.shift());
+      this.reset();
+    }
+  }
+
+  redo() {
+    if (this._history.undo.length) {
+      this._history.active.unshift(this._history.undo.pop());
+      this.reset();
+    }
+  }
+
+  group() {
+    const groupToJoinNdxs = [];
+    const shapes = [];
+    this._history.active.forEach((shapeGroup, index) => {
+      if (shapeGroup.isSelected) {
+        groupToJoinNdxs.push(index);
+        shapes.push(...shapeGroup.shapes);
+      }
+    });
+    const newGroup = new ShapeGroup(shapes);
+    groupToJoinNdxs.sort((x, y) => y - x).forEach((ndx) => {
+      this._history.active.splice(ndx, 1);
+    })
+    newGroup.unselect();
+    this._history.active.unshift(newGroup);
+    this.reset();
+
+  }
+
+  ungroup() {
+    const groupToSplitNdxs = [];
+    const shapes = [];
+    this._history.active.forEach((shapeGroup, index) => {
+      if (shapeGroup.isSelected && shapeGroup.shapes.length > 0) {
+        shapeGroup.unselect();
+        groupToSplitNdxs.push(index);
+        shapes.push(...shapeGroup.shapes);
+      }
+    });
+
+    groupToSplitNdxs.sort((x, y) => y - x).forEach((ndx) => {
+      this._history.active.splice(ndx, 1);
+    })
+
+    const newGroups = shapes.map((shape) => {
+      return new ShapeGroup([shape]);
+    })
+
+    this._history.active.unshift(...newGroups);
+    this.reset();
+  }
+
+  delete() {
+    const groupToRemove = [];
+    this._history.active.forEach((shapeGroup, index) => {
+      if (shapeGroup.isSelected && shapeGroup.shapes.length > 0) {
+        groupToRemove.push(index);
+      }
+    });
+
+    groupToRemove.sort((x, y) => y - x).forEach((ndx) => {
+      this._history.active.splice(ndx, 1);
+    });
+    this.reset();
   }
 
   // Events
@@ -146,42 +264,50 @@ class Sketchpad {
   onMouseDown(event) {
     const pos = this._getPosition(event);
 
-    if (this._isSketch) {
+    if (this._isSketchMode) {
       this._state.sketching = true;
+      this._history.undo = [];
       // TODO: Dynamic Color change implement
-      this._tool.initDraw(pos.x, pos.y, '#000');
+      this._tool.initDraw(pos.x, pos.y, this._currColor);
 
       // Allow canvas to start listening to event when click is detected.
       this.canvas.addEventListener('mousemove', this.onMouseMove);
     }
-    else {
+    else if (this._isEditMode) {
       let targetNdx = 0;
-      for (const shapes of this._history.active) {
-        for (const shape of shapes) {
-          if (shape.contains(pos.x, pos.y)) {
+      for (const shapeGroup of this._history.active) {
+        if (shapeGroup.checkGroupClick(pos.x, pos.y)) {
+          this._state.dragging = true;
+          shapeGroup.select();
+          this._initEditTools(shapeGroup.shapes, pos);
+          // Allow canvas to start listening to event when click is detected.
+          this.canvas.addEventListener('mousemove', this.onMouseMove);
 
-            this._state.dragging = true;
-            this._initEditTools(shapes, pos);
-            // Allow canvas to start listening to event when click is detected.
-            this.canvas.addEventListener('mousemove', this.onMouseMove);
-
-            if (!this._isCopy) {
-              this._history.active.splice(targetNdx, 1);
-            }
-            return;
+          if (!this._isEditCopy) {
+            this._history.active.splice(targetNdx, 1);
           }
+          return;
         }
         targetNdx++;
+      }
+    }
+    else if (this._isSelectMode) {
+      for (const shapeGroup of this._history.active) {
+        if (shapeGroup.checkGroupClick(pos.x, pos.y)) {
+          shapeGroup.click();
+          this.reset();
+          return;
+        }
       }
     }
   }
 
   onMouseMove(event) {
     const pos = this._getPosition(event);
-    if (this._isSketch) {
+    if (this._isSketchMode) {
       this._tool.draw(pos.x, pos.y);
     }
-    else {
+    else if (this._isEditMode) {
       this._editTools.forEach((editTool) => {
         editTool.move(pos.x, pos.y);
       });
@@ -189,30 +315,28 @@ class Sketchpad {
   }
 
   onMouseUp(event) {
-    if (this._isSketch) {
+    if (this._isSketchMode) {
       if (this._state.sketching) {
         this._state.sketching = false;
         let action = this._tool.finishDraw();
         if (!(this._tool instanceof PolygonTool)) {
-          this._history.active.unshift([action]);
+          this._history.active.unshift(new ShapeGroup([action]));
           this.canvas.removeEventListener('mousemove', this.onMouseMove);
         }
       }
     }
-    else {
+    else if (this._isEditMode) {
       if (this._state.dragging) {
-        console.log(this._history.active.length);
-        this._history.active.unshift(
+        const newGroup = new ShapeGroup(
           this._editTools.map((editTool) => {
             return editTool.finishMove();
           })
-        );
+        )
+        newGroup.unselect();
+        this._history.active.unshift(newGroup);
         this._editTools = null;
         this._state.dragging = false;
-        if (!this._isCopy) {
-          this.reset();
-        }
-        console.log(this._history.active.length);
+        this.reset();
       }
 
       this.canvas.removeEventListener('mousemove', this.onMouseMove);
@@ -248,10 +372,20 @@ class Sketchpad {
       document.addEventListener(('keyup'), (e) => {
         if (e.key === "Escape" && this._tool instanceof PolygonTool) { // escape key maps to keycode `27`
           this.canvas.removeEventListener('mousemove', this.onMouseMove);
-          this._history.active.unshift([this._tool.finishDraw()]);
+          this._history.active.unshift(new ShapeGroup([this._tool.finishDraw()]));
           e.stopImmediatePropagation();
           this.reset();
           this._tool = new PolygonTool(this.context);
+        }
+      });
+      document.addEventListener(('keydown'), (e) => {
+        if (e.key === 'Control') {
+          this._isEditCopy = true;
+        }
+      });
+      document.addEventListener(('keyup'), (e) => {
+        if (e.key === 'Control') {
+          this._isEditCopy = false;
         }
       });
     }, this);

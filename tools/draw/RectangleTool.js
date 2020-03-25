@@ -76,10 +76,12 @@ class RectangleTool extends Tool {
     let width = rect.history[1].x - rect.history[0].x;
     let height = rect.history[1].y - rect.history[0].y;
 
-    if (rect.isSquare) {
+    if (rect.isStrict) {
       let minLen = (Math.abs(width) < Math.abs(height)) ? Math.abs(width) : Math.abs(height);
       width = (width < 0) ? -1 * minLen : minLen;
       height = (height < 0) ? -1 * minLen : minLen;
+      rect.history[1].x = rect.history[0].x + width;
+      rect.history[1].y = rect.history[0].y + height;
     }
 
     this.context.save();
@@ -96,8 +98,7 @@ class RectangleTool extends Tool {
 
 class Rectangle extends Shape {
   constructor(color, isSquare) {
-    super(color);
-    this.isSquare = isSquare;
+    super(color, isSquare);
   }
 }
 

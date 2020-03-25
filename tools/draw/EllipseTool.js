@@ -78,7 +78,7 @@ class EllipseTool extends Tool {
   }
 
   _createEllipse(ellipse) {
-    if (ellipse.isCircle) {
+    if (ellipse.isStrict) {
       let maxLen = ellipse.history[1].x > ellipse.history[1].y ? ellipse.history[1].x : ellipse.history[1].y;
       ellipse.history[1].x = maxLen;
       ellipse.history[1].y = maxLen;
@@ -106,8 +106,7 @@ class EllipseTool extends Tool {
 
 class Ellipse extends Shape {
   constructor(color, isCircle) {
-    super(color);
-    this.isCircle = isCircle;
+    super(color, isCircle);
   }
 }
 

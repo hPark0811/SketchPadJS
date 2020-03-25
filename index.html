@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,14 +15,20 @@
   <script src="./tools/draw/PolygonTool.js"></script>
   <title>Document</title>
 </head>
+
 <body>
   <h1>Sketchpad</h1>
-  <label>Action</label>
+  <div id="instruction" style="font-weight:bold">
+    Sketch mode: Select proper draw mode to start drawing :D
+  </div>
+  <br>
+  <label>Action: </label>
   <select id="action" onchange="updateAction()">
     <option value="sketch">sketch</option>
+    <option value="edit">edit</option>
     <option value="select">select</option>
   </select>
-  <label>Shape</label>
+  <label>Draw Mode: </label>
   <select id="shape" onchange="updateShape()">
     <option value="line">line</option>
     <option value="scribble">scribble</option>
@@ -31,18 +38,50 @@
     <option value="circle">circle</option>
     <option value="polygon">polygon</option>
   </select>
-  <label>Mode</label>
+  <label>Color:</label>
+  <input type="color" id="color" name="color" value="#686262" onchange="sketchpad.setColor(event.target.value)">
+  <!-- <label>Edit: </label>
   <select id="copyMode" onchange="updateCopyMode()" disabled>
     <option value="copy">copy</option>
     <option value="move">move</option>
-  </select>
+  </select> -->
+  <br></br>
   <div>
-    <canvas id="sketchpad" style="border: solid 1px black;"></canvas>
+    <button onclick="sketchpad.undo()">undo</button>
+    <button onclick="sketchpad.redo()">redo</button>
+    <button onclick="clearSketch()">clear sketch</button>
   </div>
-  <button onclick="sketchpad.undo()">undo</button>
-  <button onclick="sketchpad.redo()">redo</button>
-  <button onclick="sketchpad.clear()">clear sketch</button>
-  <button onclick="sketchpad.reset()">reset</button>
+  <div style="display: flex;">
+    <canvas id="sketchpad" style="border: solid 1px black;"></canvas>
+    <div><pre>
+  Features Implemented: 
+
+  Action mode: SKETCH
+  - A mode to draw sketches using scribbled freehand lines 
+  - A mode to draw straight lines 
+  - A mode to draw rectangles 
+  - A mode to draw ellipses 
+  - A mode to draw special cases of these (squares and circles) 
+  - A mode to draw polygons (open and closed polygons) 
+  - Set color before drawing
+
+  Action mode: Edit
+  - Move the selected object to a new location 
+  - Paste the selected object (copy and paste)
+
+  Action mode: SELECT
+  - Cut the object (delete a graphical object) 
+  - Group / Ungroup
+
+  Misc:
+  - Undo (and Redo)
+
+    </pre></div>
+  </div>
+  <button id="groupDrawing" onclick="sketchpad.group()">group</button>
+  <button id="ungroupDrawing" onclick="sketchpad.ungroup()">ungroup</button>
+  <button id="deleteDrawing" onclick="sketchpad.delete()">delete</button>
   <script src="./index.js"></script>
 </body>
+
 </html>
